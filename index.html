@@ -1187,6 +1187,14 @@ function toggleCategoryView() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check API connection status
+    const isApiAvailable = await window.storageAPI.checkConnection();
+    if (isApiAvailable) {
+        console.log('✓ API connection available - using Neon database');
+    } else {
+        console.log('⚠ API not available - using localStorage fallback');
+    }
+    
     // Initial data load
     loadCollections();
     loadTags(); // Loads user tags and merges with pre-populated ones

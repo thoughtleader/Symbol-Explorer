@@ -20,11 +20,27 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     const response = await fetch(`${API_BASE}${endpoint}`, options);
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `API error: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      let error;
+      
+      if (contentType && contentType.includes('application/json')) {
+        error = await response.json();
+        throw new Error(error.error || `API error: ${response.status}`);
+      } else {
+        throw new Error(`API error: ${response.status} - ${response.statusText}`);
+      }
     }
 
-    return await response.json();
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response from API');
+      }
+      return JSON.parse(text);
+    } else {
+      throw new Error(`Invalid content type: ${contentType}`);
+    }
   } catch (error) {
     console.error(`API call failed for ${endpoint}:`, error);
     throw error;
