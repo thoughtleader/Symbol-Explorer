@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -215,6 +217,8 @@
 
 <script>
 let allSymbols = [];
+let symbolsByCategory = {};
+let currentFilteredSymbols = [];
 
 async function loadSymbolsFromJSON() {
     try {
@@ -529,7 +533,8 @@ async function handleSearch() {
         renderByCategory(filteredSymbols);
     } else {
         renderSymbols(filteredSymbols, symbolGrid, 120);
-        setupLazyScrolling();
+        // Use setTimeout to ensure DOM is updated before checking scroll
+        setTimeout(() => setupLazyScrolling(), 0);
     }
 }
 
@@ -1026,6 +1031,21 @@ function setupLazyScrolling() {
             lazyLoadMore();
         }
     });
+
+    // Check if content doesn't fill the viewport and load more if needed
+    checkAndLoadMoreIfNeeded();
+}
+
+function checkAndLoadMoreIfNeeded() {
+    const grid = document.getElementById('symbol-grid');
+    if (!grid) return;
+
+    // If scrollHeight <= clientHeight, content doesn't fill viewport
+    if (grid.scrollHeight <= grid.clientHeight) {
+        lazyLoadMore();
+        // Recursively check again in case we need to load more
+        setTimeout(() => checkAndLoadMoreIfNeeded(), 0);
+    }
 }
 
 function lazyLoadMore() {
@@ -1160,7 +1180,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // De-duplicate the master list for rendering
     currentFilteredSymbols = uniqueSymbols;
     renderSymbols(uniqueSymbols, symbolGrid, 120); // Render initial 120 symbols
-    setupLazyScrolling();
+    // Use setTimeout to ensure DOM is updated before checking scroll
+    setTimeout(() => setupLazyScrolling(), 0);
     
     // Search
     searchInput.addEventListener('input', handleSearch);
