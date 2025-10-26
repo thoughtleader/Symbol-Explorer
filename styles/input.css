@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar for symbol grid */
+#symbol-grid::-webkit-scrollbar,
+#collections-grid::-webkit-scrollbar,
+#snippet-list::-webkit-scrollbar,
+#collection-list::-webkit-scrollbar {
+    width: 8px;
+}
+#symbol-grid::-webkit-scrollbar-track,
+#collections-grid::-webkit-scrollbar-track,
+#snippet-list::-webkit-scrollbar-track,
+#collection-list::-webkit-scrollbar-track {
+    background: #f1f5f9; /* gray-100 */
+}
+#symbol-grid::-webkit-scrollbar-thumb,
+#collections-grid::-webkit-scrollbar-thumb,
+#snippet-list::-webkit-scrollbar-thumb,
+#collection-list::-webkit-scrollbar-thumb {
+    background: #94a3b8; /* gray-400 */
+    border-radius: 4px;
+}
+#symbol-grid::-webkit-scrollbar-thumb:hover,
+#collections-grid::-webkit-scrollbar-thumb:hover,
+#snippet-list::-webkit-scrollbar-thumb:hover,
+#collection-list::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* gray-500 */
+}
+
+/* Small tag pills */
+.tag-pill {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e0e7ff; /* indigo-100 */
+    color: #3730a3; /* indigo-800 */
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+    border-radius: 9999px; /* rounded-full */
+}
+.tag-pill-remove {
+    margin-left: 0.25rem; /* ml-1 */
+    padding: 0.125rem; /* p-0.5 */
+    border-radius: 9999px; /* rounded-full */
+    background-color: #c7d2fe; /* indigo-200 */
+    color: #4338ca; /* indigo-700 */
+    cursor: pointer;
+    line-height: 1;
+}
+.tag-pill-remove:hover {
+    background-color: #a5b4fc; /* indigo-300 */
+    color: #312e81; /* indigo-900 */
+}
+
+/* Category collapsible styles */
+.category-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+.category-header:hover {
+    background-color: #dbeafe !important; /* blue-100 */
+}
+.category-toggle {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    margin-right: 0.5rem;
+}
+.category-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+.category-symbols {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: #f9fafb; /* gray-50 */
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+.category-symbols.collapsed {
+    display: none;
+}

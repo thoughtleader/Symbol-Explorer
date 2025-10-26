@@ -31,8 +31,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // CRITICAL FIX: Skip non-http(s) requests (chrome-extension, etc)
+  // Skip non-http(s) requests (chrome-extension, etc)
   if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
+  // Skip favicon and other non-essential requests
+  if (event.request.url.includes('favicon') || 
+      event.request.url.includes('.woff') ||
+      event.request.url.includes('.woff2')) {
     return;
   }
 
@@ -42,19 +49,33 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response;
         }
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        return fetch(event.request)
+          .then((response) => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            const responseToCache = response.clone();
+            // Only cache http/https requests
+            if (event.request.url.startsWith('http')) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
             return response;
-          }
-          const responseToCache = response.clone();
-          // Only cache http/https requests
-          if (event.request.url.startsWith('http')) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
-        });
+          })
+          .catch(() => {
+            // Return offline page or cached response on network error
+            return caches.match(event.request)
+              .then((cachedResponse) => {
+                return cachedResponse || new Response('Offline - resource not available', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: new Headers({
+                    'Content-Type': 'text/plain'
+                  })
+                });
+              });
+          });
       })
   );
 });
