@@ -1,9 +1,8 @@
 // API endpoints for managing symbols within collections
-import { db } from '../../db/index.ts';
-import { collections, collectionSymbols } from '../../db/schema.ts';
-import { eq, and } from 'drizzle-orm';
+const { neon } = require('@netlify/neon');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
@@ -19,34 +18,34 @@ export const handler = async (event, context) => {
       }
 
       // Get collection ID
-      const col = await db
-        .select({ id: collections.id })
-        .from(collections)
-        .where(eq(collections.name, collectionName));
+      const collections = await sql`
+        SELECT id FROM collections WHERE name = ${collectionName}
+      `;
 
-      if (col.length === 0) {
+      if (collections.length === 0) {
         return {
           statusCode: 404,
           body: JSON.stringify({ error: 'Collection not found' })
         };
       }
 
-      const collectionId = col[0].id;
+      const collectionId = collections[0].id;
 
       // Add symbol to collection
       try {
-        const result = await db
-          .insert(collectionSymbols)
-          .values({ collection_id: collectionId, symbol_char: symbolChar })
-          .returning();
+        const result = await sql`
+          INSERT INTO collection_symbols (collection_id, symbol_char)
+          VALUES (${collectionId}, ${symbolChar})
+          ON CONFLICT (collection_id, symbol_char) DO NOTHING
+          RETURNING id, collection_id, symbol_char
+        `;
 
         return {
           statusCode: 201,
-          body: JSON.stringify(result[0]),
+          body: JSON.stringify(result[0] || { message: 'Symbol already in collection' }),
           headers: { 'Content-Type': 'application/json' }
         };
       } catch (error) {
-        // Handle unique constraint violation
         if (error.message.includes('unique')) {
           return {
             statusCode: 200,
@@ -70,28 +69,25 @@ export const handler = async (event, context) => {
       }
 
       // Get collection ID
-      const col = await db
-        .select({ id: collections.id })
-        .from(collections)
-        .where(eq(collections.name, collectionName));
+      const collections = await sql`
+        SELECT id FROM collections WHERE name = ${collectionName}
+      `;
 
-      if (col.length === 0) {
+      if (collections.length === 0) {
         return {
           statusCode: 404,
           body: JSON.stringify({ error: 'Collection not found' })
         };
       }
 
-      const collectionId = col[0].id;
+      const collectionId = collections[0].id;
 
       // Remove symbol from collection
-      const result = await db
-        .delete(collectionSymbols)
-        .where(and(
-          eq(collectionSymbols.collection_id, collectionId),
-          eq(collectionSymbols.symbol_char, symbolChar)
-        ))
-        .returning();
+      const result = await sql`
+        DELETE FROM collection_symbols
+        WHERE collection_id = ${collectionId} AND symbol_char = ${symbolChar}
+        RETURNING id, collection_id, symbol_char
+      `;
 
       if (result.length === 0) {
         return {

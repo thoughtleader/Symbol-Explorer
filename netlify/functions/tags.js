@@ -1,23 +1,26 @@
 // API endpoints for managing symbol tags
-import { db } from '../../db/index.ts';
-import { symbolTags } from '../../db/schema.ts';
-import { eq, and } from 'drizzle-orm';
+const { neon } = require('@netlify/neon');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
     // GET /tags - Fetch all tags grouped by symbol
     if (httpMethod === 'GET') {
-      const allTags = await db.select().from(symbolTags);
+      const tags = await sql`
+        SELECT 
+          symbol_char,
+          json_agg(tag ORDER BY tag) as tags
+        FROM symbol_tags
+        GROUP BY symbol_char
+        ORDER BY symbol_char
+      `;
 
       // Convert to object format for easier client-side use
       const tagsObject = {};
-      allTags.forEach(row => {
-        if (!tagsObject[row.symbol_char]) {
-          tagsObject[row.symbol_char] = [];
-        }
-        tagsObject[row.symbol_char].push(row.tag);
+      tags.forEach(row => {
+        tagsObject[row.symbol_char] = row.tags;
       });
 
       return {
@@ -39,18 +42,19 @@ export const handler = async (event, context) => {
       }
 
       try {
-        const result = await db
-          .insert(symbolTags)
-          .values({ symbol_char: symbolChar, tag: tag.toLowerCase() })
-          .returning();
+        const result = await sql`
+          INSERT INTO symbol_tags (symbol_char, tag)
+          VALUES (${symbolChar}, ${tag.toLowerCase()})
+          ON CONFLICT (symbol_char, tag) DO NOTHING
+          RETURNING id, symbol_char, tag
+        `;
 
         return {
           statusCode: 201,
-          body: JSON.stringify(result[0]),
+          body: JSON.stringify(result[0] || { message: 'Tag already exists for symbol' }),
           headers: { 'Content-Type': 'application/json' }
         };
       } catch (error) {
-        // Handle unique constraint violation
         if (error.message.includes('unique')) {
           return {
             statusCode: 200,
@@ -73,13 +77,11 @@ export const handler = async (event, context) => {
         };
       }
 
-      const result = await db
-        .delete(symbolTags)
-        .where(and(
-          eq(symbolTags.symbol_char, symbolChar),
-          eq(symbolTags.tag, tag.toLowerCase())
-        ))
-        .returning();
+      const result = await sql`
+        DELETE FROM symbol_tags
+        WHERE symbol_char = ${symbolChar} AND tag = ${tag.toLowerCase()}
+        RETURNING id, symbol_char, tag
+      `;
 
       if (result.length === 0) {
         return {

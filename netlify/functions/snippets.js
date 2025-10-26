@@ -1,18 +1,18 @@
 // API endpoints for managing text snippets
-import { db } from '../../db/index.ts';
-import { textSnippets } from '../../db/schema.ts';
-import { eq } from 'drizzle-orm';
+const { neon } = require('@netlify/neon');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
     // GET /snippets - Fetch all text snippets
     if (httpMethod === 'GET') {
-      const snippets = await db
-        .select()
-        .from(textSnippets)
-        .orderBy(textSnippets.created_at);
+      const snippets = await sql`
+        SELECT id, text, created_at, updated_at
+        FROM text_snippets
+        ORDER BY created_at DESC
+      `;
 
       return {
         statusCode: 200,
@@ -33,10 +33,12 @@ export const handler = async (event, context) => {
       }
 
       try {
-        const result = await db
-          .insert(textSnippets)
-          .values({ id, text })
-          .returning();
+        const result = await sql`
+          INSERT INTO text_snippets (id, text)
+          VALUES (${id}, ${text})
+          ON CONFLICT (id) DO UPDATE SET text = ${text}, updated_at = CURRENT_TIMESTAMP
+          RETURNING id, text, created_at, updated_at
+        `;
 
         return {
           statusCode: 201,
@@ -44,13 +46,13 @@ export const handler = async (event, context) => {
           headers: { 'Content-Type': 'application/json' }
         };
       } catch (error) {
-        // Handle unique constraint violation - update instead
         if (error.message.includes('unique') || error.message.includes('duplicate')) {
-          const result = await db
-            .update(textSnippets)
-            .set({ text, updated_at: new Date() })
-            .where(eq(textSnippets.id, id))
-            .returning();
+          const result = await sql`
+            UPDATE text_snippets
+            SET text = ${text}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${id}
+            RETURNING id, text, created_at, updated_at
+          `;
 
           return {
             statusCode: 200,
@@ -73,10 +75,11 @@ export const handler = async (event, context) => {
         };
       }
 
-      const result = await db
-        .delete(textSnippets)
-        .where(eq(textSnippets.id, id))
-        .returning();
+      const result = await sql`
+        DELETE FROM text_snippets
+        WHERE id = ${id}
+        RETURNING id, text
+      `;
 
       if (result.length === 0) {
         return {

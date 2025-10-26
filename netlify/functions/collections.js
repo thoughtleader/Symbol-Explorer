@@ -1,36 +1,29 @@
 // API endpoints for managing symbol collections
-import { db } from '../../db/index.ts';
-import { collections, collectionSymbols } from '../../db/schema.ts';
-import { eq } from 'drizzle-orm';
+const { neon } = require('@netlify/neon');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
     // GET /collections - Fetch all collections with their symbols
     if (httpMethod === 'GET') {
-      const allCollections = await db.select().from(collections);
-      
-      const result = await Promise.all(
-        allCollections.map(async (col) => {
-          const symbols = await db
-            .select({ symbol_char: collectionSymbols.symbol_char })
-            .from(collectionSymbols)
-            .where(eq(collectionSymbols.collection_id, col.id));
-          
-          return {
-            id: col.id,
-            name: col.name,
-            created_at: col.created_at,
-            updated_at: col.updated_at,
-            symbols: symbols.map(s => s.symbol_char)
-          };
-        })
-      );
+      const collections = await sql`
+        SELECT 
+          c.id,
+          c.name,
+          c.created_at,
+          c.updated_at,
+          COALESCE(json_agg(cs.symbol_char) FILTER (WHERE cs.symbol_char IS NOT NULL), '[]'::json) as symbols
+        FROM collections c
+        LEFT JOIN collection_symbols cs ON c.id = cs.collection_id
+        GROUP BY c.id, c.name, c.created_at, c.updated_at
+        ORDER BY c.name
+      `;
 
       return {
         statusCode: 200,
-        body: JSON.stringify(result),
+        body: JSON.stringify(collections),
         headers: { 'Content-Type': 'application/json' }
       };
     }
@@ -46,10 +39,11 @@ export const handler = async (event, context) => {
         };
       }
 
-      const result = await db
-        .insert(collections)
-        .values({ name })
-        .returning();
+      const result = await sql`
+        INSERT INTO collections (name)
+        VALUES (${name})
+        RETURNING id, name, created_at
+      `;
 
       return {
         statusCode: 201,
@@ -69,10 +63,11 @@ export const handler = async (event, context) => {
         };
       }
 
-      const result = await db
-        .delete(collections)
-        .where(eq(collections.name, name))
-        .returning();
+      const result = await sql`
+        DELETE FROM collections
+        WHERE name = ${name}
+        RETURNING id, name
+      `;
 
       if (result.length === 0) {
         return {
