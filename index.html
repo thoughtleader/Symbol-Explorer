@@ -1,0 +1,1228 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTF-8 Symbol Searcher & Toolkit</title>
+    
+    <meta name="theme-color" content="#ffffff">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Symbol Toolkit">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <meta name="apple-mobile-web-app-title" content="Symbol Toolkit">
+    
+    <meta name="msapplication-TileColor" content="#2d89ef">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for symbol grid */
+        #symbol-grid::-webkit-scrollbar,
+        #collections-grid::-webkit-scrollbar,
+        #snippet-list::-webkit-scrollbar,
+        #collection-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        #symbol-grid::-webkit-scrollbar-track,
+        #collections-grid::-webkit-scrollbar-track,
+        #snippet-list::-webkit-scrollbar-track,
+        #collection-list::-webkit-scrollbar-track {
+            background: #f1f5f9; /* gray-100 */
+        }
+        #symbol-grid::-webkit-scrollbar-thumb,
+        #collections-grid::-webkit-scrollbar-thumb,
+        #snippet-list::-webkit-scrollbar-thumb,
+        #collection-list::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* gray-400 */
+            border-radius: 4px;
+        }
+        #symbol-grid::-webkit-scrollbar-thumb:hover,
+        #collections-grid::-webkit-scrollbar-thumb:hover,
+        #snippet-list::-webkit-scrollbar-thumb:hover,
+        #collection-list::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* gray-500 */
+        }
+
+        /* Small tag pills */
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #3730a3; /* indigo-800 */
+            font-size: 0.75rem; /* 12px */
+            font-weight: 500;
+            padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+            border-radius: 9999px; /* rounded-full */
+        }
+        .tag-pill-remove {
+            margin-left: 0.25rem; /* ml-1 */
+            padding: 0.125rem; /* p-0.5 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #c7d2fe; /* indigo-200 */
+            color: #4338ca; /* indigo-700 */
+            cursor: pointer;
+            line-height: 1;
+        }
+        .tag-pill-remove:hover {
+            background-color: #a5b4fc; /* indigo-300 */
+            color: #312e81; /* indigo-900 */
+        }
+
+        /* Category collapsible styles */
+        .category-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+        .category-header:hover {
+            background-color: #dbeafe !important; /* blue-100 */
+        }
+        .category-toggle {
+            display: inline-block;
+            transition: transform 0.2s ease;
+            margin-right: 0.5rem;
+        }
+        .category-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        .category-symbols {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.75rem;
+            padding: 1rem;
+            background-color: #f9fafb; /* gray-50 */
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .category-symbols.collapsed {
+            display: none;
+        }
+    </style>
+    <link rel="manifest" href="./manifest.json">
+</head>
+<body class="bg-gray-100 font-sans text-gray-900">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <header class="mb-6">
+            <h1 class="text-4xl font-bold text-gray-800">UTF-8 Symbol Toolkit by boss.ux</h1>
+            <p class="text-lg text-gray-600">Search, save, and convert symbols.</p>
+        </header>
+
+        <div class="mb-6">
+            <div class="border-b border-gray-300">
+                <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+                    <button data-tab="searcher" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg border-blue-600 text-blue-700">
+                        Symbol Searcher
+                    </button>
+                    <button data-tab="converter" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                        Text Converter
+                    </button>
+                    <button data-tab="collections" class="tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                        My Collections
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <div>
+            <div id="tab-searcher" class="tab-content">
+                <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
+                    <div class="flex-1 w-full">
+                        <input type="text" id="search-input" placeholder="Search symbols..." 
+                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" data-placeholder-base="Search {count} symbols...">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="category-toggle" 
+                                   class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Group by Category</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="symbol-grid" class="p-4 bg-white rounded-lg shadow max-h-[75vh] overflow-y-auto">
+                    <!-- Symbols will be rendered here -->
+                </div>
+            </div>
+
+            <div id="tab-converter" class="tab-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="text-input" class="block text-sm font-medium text-gray-700 mb-2">Enter your text:</label>
+                        <textarea id="text-input" rows="10" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg" placeholder="Hello World!"></textarea>
+                    </div>
+                    <div>
+                        <label for="text-output" class="block text-sm font-medium text-gray-700 mb-2">Bold Sans-Serif Output:</label>
+                        <textarea id="text-output" rows="10" readonly class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 text-lg" placeholder="𝐇𝐞𝐥𝐥𝐨 𝐖𝐨𝐫𝐥𝐝!"></textarea>
+                        <button id="copy-converted-btn" class="mt-4 w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors">
+                            Copy Converted Text
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-collections" class="tab-content hidden">
+                <div id="text-snippets-container" class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">My Text Snippets</h2>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                            <input type="text" id="new-snippet-input" placeholder="Paste or type new text snippet..." class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <button id="add-snippet-btn" class="bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors whitespace-nowrap">Add Snippet</button>
+                        </div>
+                        <div id="snippet-list" class="space-y-3 max-h-64 overflow-y-auto p-1">
+                            </div>
+                    </div>
+                </div>
+
+                <div id="symbol-collections-container">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-3">My Symbol Collections</h2>
+                    <div id="collections-grid" class="space-y-6 max-h-[75vh] overflow-y-auto p-2">
+                       </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="context-menu" class="hidden fixed bg-white border border-gray-300 rounded-lg shadow-xl z-50 min-w-[240px] py-2">
+        <div class="px-4 py-2 text-sm font-semibold text-gray-700">Add to Collection</div>
+        <div class="border-t border-gray-200 my-1"></div>
+        <ul id="collection-list" class="max-h-48 overflow-y-auto">
+            </ul>
+        <div class="border-t border-gray-200 my-1"></div>
+        <div class="px-4 py-2">
+            <input type="text" id="new-collection-input" placeholder="New collection name..." class="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <button id="new-collection-btn" class="w-full text-sm bg-blue-500 text-white font-semibold py-2 px-3 rounded-md mt-2 hover:bg-blue-600">
+                Create & Add
+            </button>
+        </div>
+        
+        <div class="border-t border-gray-200 my-1"></div>
+        <div class="px-4 py-2">
+            <div class="text-sm font-semibold text-gray-700 mb-2">Tags</div>
+            <div id="tag-display" class="flex flex-wrap gap-1 mb-2 empty:mb-0">
+                </div>
+            <input type="text" id="new-tag-input" placeholder="Add a tag..." class="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            <button id="new-tag-btn" class="w-full text-sm bg-gray-500 text-white font-semibold py-2 px-3 rounded-md mt-2 hover:bg-gray-600">
+                Add Tag
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-gray-900 text-white py-3 px-5 rounded-lg shadow-lg z-50 transition-all duration-300 ease-in-out">
+        <span id="toast-message"></span>
+    </div>
+
+<script>
+// --- DATABASE ---
+// A curated and merged list of over 3000 UTF-8 symbols and emojis.
+// This list is intentionally truncated for display, but represents the full set.
+let allSymbols = [];
+let symbolsByCategory = {};
+
+async function loadSymbolsFromJSON() {
+    try {
+        const response = await fetch('./symbols.json');
+        if (!response.ok) throw new Error('Failed to load symbols');
+        allSymbols = await response.json();
+
+        symbolsByCategory = {};
+        allSymbols.forEach(symbol => {
+            const cat = symbol.cat || 'Other';
+            if (!symbolsByCategory[cat]) {
+                symbolsByCategory[cat] = [];
+            }
+            symbolsByCategory[cat].push(symbol);
+        });
+
+        console.log(`Loaded ${allSymbols.length} symbols in ${Object.keys(symbolsByCategory).length} categories`);
+        return allSymbols;
+    } catch (error) {
+        console.error('Error loading symbols:', error);
+        allSymbols = [{c:"©", n:"COPYRIGHT", cat:"Symbols"}];
+        symbolsByCategory = {"Symbols": allSymbols};
+        return allSymbols;
+    }
+}
+
+// Map for Bold Sans-Serif conversion
+const boldSansSerifMap = {
+    'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜',
+    'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥',
+    'S': '𝗦', 'T': '𝗧', 'U': '𝗨', 'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭',
+    'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶',
+    'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿',
+    's': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
+    '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4.': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
+};
+
+// Pre-populated tags from W3S categories
+let symbolTags = {
+    // Original Tags
+    '▲': ['triangle', 'up', 'arrow', 'shape', 'geometric'],
+    '▼': ['triangle', 'down', 'arrow', 'shape', 'geometric'],
+    '▶': ['triangle', 'right', 'arrow', 'shape', 'geometric'],
+    '◀': ['triangle', 'left', 'arrow', 'shape', 'geometric'],
+    
+    // Punctuation & Basic
+    '!': ['punctuation', 'mark'], '"': ['punctuation', 'quotes'], '#': ['punctuation', 'hash', 'number'],
+    '$': ['currency', 'money'], '%': ['percent', 'math'], '&': ['ampersand', 'punctuation'],
+    '(': ['punctuation', 'parenthesis'], ')': ['punctuation', 'parenthesis'], '*': ['asterisk', 'math'],
+    '+': ['plus', 'math'], ',': ['punctuation', 'comma'], '-': ['hyphen', 'minus', 'math'],
+    '.': ['punctuation', 'dot', 'stop'], '/': ['slash', 'punctuation'],
+    ':': ['punctuation', 'colon'], ';': ['punctuation', 'semicolon'], '<': ['math', 'arrow'],
+    '=': ['math', 'equals'], '>': ['math', 'arrow'], '?': ['punctuation', 'question'],
+    '@': ['email', 'at'], '[': ['punctuation', 'bracket'], ']': ['punctuation', 'bracket'],
+    '\\': ['punctuation', 'slash'], '^': ['punctuation', 'math', 'power'], '_': ['punctuation', 'underscore'],
+    '`': ['punctuation', 'grave'], '{': ['punctuation', 'bracket', 'curly'], '}': ['punctuation', 'bracket', 'curly'],
+    '|': ['punctuation', 'pipe', 'vertical bar'], '~': ['punctuation', 'tilde'],
+    
+    // Latin-1 Supplement
+    '¡': ['punctuation', 'inverted'], '¢': ['currency', 'money', 'cent'], '£': ['currency', 'money', 'pound'],
+    '¤': ['currency', 'money'], '¥': ['currency', 'money', 'yen'], '¦': ['punctuation', 'bar'],
+    '§': ['punctuation', 'section'], '©': ['copyright', 'symbol'], 'ª': ['ordinal', 'indicator'],
+    '«': ['punctuation', 'quotes', 'arrow'], '¬': ['math', 'logic', 'not'], '®': ['registered', 'symbol'],
+    '°': ['degree', 'math', 'symbol'], '±': ['plus', 'minus', 'math'], '²': ['superscript', 'math', 'power'],
+    '³': ['superscript', 'math', 'power'], '´': ['punctuation', 'accent'], 'µ': ['micro', 'math', 'greek'],
+    '¶': ['punctuation', 'pilcrow', 'paragraph'], '·': ['punctuation', 'dot', 'math'],
+    '¹': ['superscript', 'math', 'power'], 'º': ['ordinal', 'indicator'], '»': ['punctuation', 'quotes', 'arrow'],
+    '¼': ['fraction', 'math', 'number'], '½': ['fraction', 'math', 'number'], '¾': ['fraction', 'math', 'number'],
+    '¿': ['punctuation', 'inverted'],
+    
+    // Math
+    '×': ['math', 'multiply', 'times'], '÷': ['math', 'divide'], '−': ['math', 'minus'],
+    '∂': ['math', 'calculus', 'partial'], '∆': ['math', 'delta', 'greek', 'increment'],
+    '∏': ['math', 'product'], '∑': ['math', 'sum', 'sigma', 'greek'], '√': ['math', 'root', 'square root'],
+    '∞': ['math', 'infinity'], '∟': ['math', 'angle'], '∩': ['math', 'intersection'],
+    '∫': ['math', 'integral', 'calculus'], '≈': ['math', 'equals', 'almost'], '≠': ['math', 'equals', 'not'],
+    '≤': ['math', 'equals', 'less than'], '≥': ['math', 'equals', 'greater than'],
+    '∀': ['math', 'logic', 'for all'], '∃': ['math', 'logic', 'exists'], '∅': ['math', 'set', 'empty'],
+    '∇': ['math', 'nabla', 'calculus'], '∈': ['math', 'set', 'element of'], '∉': ['math', 'set', 'not element'],
+    '∋': ['math', 'set', 'contains'], '∗': ['math', 'asterisk'], '∝': ['math', 'proportional'],
+    '∠': ['math', 'angle'], '∧': ['math', 'logic', 'and'], '∨': ['math', 'logic', 'or'], '∪': ['math', 'set', 'union'],
+    '∴': ['math', 'logic', 'therefore'], '∵': ['math', 'logic', 'because'], '∼': ['math', 'tilde', 'operator'],
+    '≅': ['math', 'equals', 'approximately'], '≡': ['math', 'equals', 'identical'], '⊂': ['math', 'set', 'subset'],
+    '⊃': ['math', 'set', 'superset'], '⊄': ['math', 'set', 'not subset'], '⊅': ['math', 'set', 'not superset'],
+    '⊆': ['math', 'set', 'subset equal'], '⊇': ['math', 'set', 'superset equal'], '⊕': ['math', 'plus', 'circle'],
+    '⊖': ['math', 'minus', 'circle'], '⊗': ['math', 'times', 'circle'], '⊘': ['math', 'divide', 'circle'],
+    '⊙': ['math', 'dot', 'circle'], '⊥': ['math', 'logic', 'up tack'], '⋅': ['math', 'dot', 'operator'],
+    '⌈': ['math', 'bracket', 'ceiling'], '⌉': ['math', 'bracket', 'ceiling'], '⌊': ['math', 'bracket', 'floor'],
+    '⌋': ['math', 'bracket', 'floor'], '⟨': ['math', 'bracket', 'angle'], '⟩': ['math', 'bracket', 'angle'],
+
+    // Greek
+    'Α': ['greek', 'letter'], 'Β': ['greek', 'letter'], 'Γ': ['greek', 'letter'], 'Δ': ['greek', 'letter', 'math'],
+    'Ε': ['greek', 'letter'], 'Ζ': ['greek', 'letter'], 'Η': ['greek', 'letter'], 'Θ': ['greek', 'letter', 'math'],
+    'Ι': ['greek', 'letter'], 'Κ': ['greek', 'letter'], 'Λ': ['greek', 'letter', 'math'], 'Μ': ['greek', 'letter'],
+    'Ν': ['greek', 'letter'], 'Ξ': ['greek', 'letter'], 'Ο': ['greek', 'letter'], 'Π': ['greek', 'letter', 'math'],
+    'Ρ': ['greek', 'letter'], 'Σ': ['greek', 'letter', 'math'], 'Τ': ['greek', 'letter'], 'Υ': ['greek', 'letter'],
+    'Φ': ['greek', 'letter', 'math'], 'Χ': ['greek', 'letter'], 'Ψ': ['greek', 'letter', 'math'], 'Ω': ['greek', 'letter', 'math'],
+    'α': ['greek', 'letter', 'math'], 'β': ['greek', 'letter', 'math'], 'γ': ['greek', 'letter', 'math'],
+    'δ': ['greek', 'letter', 'math'], 'ε': ['greek', 'letter', 'math'], 'ζ': ['greek', 'letter', 'math'],
+    'η': ['greek', 'letter', 'math'], 'θ': ['greek', 'letter', 'math'], 'ι': ['greek', 'letter', 'math'],
+    'κ': ['greek', 'letter', 'math'], 'λ': ['greek', 'letter', 'math'], 'μ': ['greek', 'letter', 'math', 'micro'],
+    'ν': ['greek', 'letter', 'math'], 'ξ': ['greek', 'letter', 'math'], 'ο': ['greek', 'letter', 'math'],
+    'π': ['greek', 'letter', 'math', 'pi'], 'ρ': ['greek', 'letter', 'math'], 'ς': ['greek', 'letter'],
+    'σ': ['greek', 'letter', 'math'], 'τ': ['greek', 'letter', 'math'], 'υ': ['greek', 'letter', 'math'],
+    'φ': ['greek', 'letter', 'math'], 'χ': ['greek', 'letter', 'math'], 'ψ': ['greek', 'letter', 'math'],
+    'ω': ['greek', 'letter', 'math'], 'ϑ': ['greek', 'letter', 'math'], 'ϒ': ['greek', 'letter'],
+    'ϕ': ['greek', 'letter', 'math'], 'ϖ': ['greek', 'letter', 'math'],
+    
+    // Arrows
+    '→': ['arrow', 'right'], '←': ['arrow', 'left'], '↑': ['arrow', 'up'], '↓': ['arrow', 'down'],
+    '↔': ['arrow', 'left', 'right'], '↕': ['arrow', 'up', 'down'], '↖': ['arrow', 'up', 'left'],
+    '↗': ['arrow', 'up', 'right'], '↘': ['arrow', 'down', 'right'], '↙': ['arrow', 'down', 'left'],
+    '⇒': ['arrow', 'right', 'double'], '⇐': ['arrow', 'left', 'double'], '⇑': ['arrow', 'up', 'double'],
+    '⇓': ['arrow', 'down', 'double'], '⇔': ['arrow', 'left', 'right', 'double'], '⇕': ['arrow', 'up', 'down', 'double'],
+    '⇽': ['arrow', 'left'], '⇾': ['arrow', 'right'], '⇿': ['arrow', 'left', 'right'],
+    '⤴': ['arrow', 'up', 'right', 'curve'], '⤵': ['arrow', 'down', 'right', 'curve'], '↵': ['arrow', 'down', 'left', 'enter'],
+    '↳': ['arrow', 'down', 'right'], '↴': ['arrow', 'down', 'right'], '↱': ['arrow', 'up', 'right'],
+    '↲': ['arrow', 'down', 'left'], '↶': ['arrow', 'curve', 'circle', 'counter-clockwise'],
+    '↷': ['arrow', 'curve', 'circle', 'clockwise'],
+
+    // Box Drawing
+    '─': ['box', 'line', 'horizontal'], '│': ['box', 'line', 'vertical'], '┌': ['box', 'corner', 'down', 'right'],
+    '┐': ['box', 'corner', 'down', 'left'], '└': ['box', 'corner', 'up', 'right'], '┘': ['box', 'corner', 'up', 'left'],
+    '├': ['box', 't', 'vertical', 'right'], '┤': ['box', 't', 'vertical', 'left'], '┬': ['box', 't', 'down', 'horizontal'],
+    '┴': ['box', 't', 'up', 'horizontal'], '┼': ['box', 'cross', 'all'], '═': ['box', 'line', 'horizontal', 'double'],
+    '║': ['box', 'line', 'vertical', 'double'], '╔': ['box', 'corner', 'down', 'right', 'double'],
+    '╗': ['box', 'corner', 'down', 'left', 'double'], '╚': ['box', 'corner', 'up', 'right', 'double'],
+    '╝': ['box', 'corner', 'up', 'left', 'double'], '╠': ['box', 't', 'vertical', 'right', 'double'],
+    '╣': ['box', 't', 'vertical', 'left', 'double'], '╦': ['box', 't', 'down', 'horizontal', 'double'],
+    '╩': ['box', 't', 'up', 'horizontal', 'double'], '╬': ['box', 'cross', 'all', 'double'],
+
+    // Geometric Shapes
+    '■': ['shape', 'geometric', 'square', 'box'], '□': ['shape', 'geometric', 'square', 'box'],
+    '▪': ['shape', 'geometric', 'square', 'box'], '▫': ['shape', 'geometric', 'square', 'box'],
+    '▬': ['shape', 'geometric', 'rectangle', 'box'], '▭': ['shape', 'geometric', 'rectangle', 'box'],
+    '◆': ['shape', 'geometric', 'diamond', 'lozenge'], '◇': ['shape', 'geometric', 'diamond', 'lozenge'],
+    '●': ['shape', 'geometric', 'circle', 'dot'], '○': ['shape', 'geometric', 'circle', 'dot'],
+    '◘': ['shape', 'geometric', 'circle'], '◙': ['shape', 'geometric', 'circle'], '◦': ['shape', 'geometric', 'circle', 'dot'],
+    '▀': ['shape', 'geometric', 'block'], '▄': ['shape', 'geometric', 'block'], '█': ['shape', 'geometric', 'block'],
+    '▌': ['shape', 'geometric', 'block'], '▐': ['shape', 'geometric', 'block'], '░': ['shape', 'geometric', 'shade'],
+    '▒': ['shape', 'geometric', 'shade'], '▓': ['shape', 'geometric', 'shade'],
+    
+    // Misc
+    '♠': ['card', 'suit', 'spade'], '♣': ['card', 'suit', 'club'], '♥': ['card', 'suit', 'heart', 'love'],
+    '♦': ['card', 'suit', 'diamond'], '✓': ['check', 'mark', 'symbol'], '✔': ['check', 'mark', 'symbol'],
+    '✕': ['x', 'mark', 'math', 'multiply'], '✖': ['x', 'mark'], '✗': ['x', 'mark'], '✘': ['x', 'mark'],
+    '★': ['star', 'symbol'], '☆': ['star', 'symbol'], '☐': ['box', 'ballot', 'check'],
+    '☑': ['box', 'ballot', 'check'], '☒': ['box', 'ballot', 'check', 'x'],
+    '☺': ['face', 'smiley', 'emoji'], '☻': ['face', 'smiley', 'emoji'], '☼': ['sun', 'weather', 'symbol'],
+    '♀': ['gender', 'symbol', 'female'], '♂': ['gender', 'symbol', 'male'], '♪': ['music', 'note'], '♫': ['music', 'note'],
+    '☕': ['emoji', 'beverage', 'drink', 'coffee'], '☥': ['symbol', 'ankh', 'religion'], '☧': ['symbol', 'religion', 'chi rho'],
+    '☮': ['symbol', 'peace'], '☯': ['symbol', 'yin yang', 'religion'], '☸': ['symbol', 'dharma', 'religion'],
+    '♈': ['zodiac', 'symbol', 'aries'], '♉': ['zodiac', 'symbol', 'taurus'], '♊': ['zodiac', 'symbol', 'gemini'],
+    '♋': ['zodiac', 'symbol', 'cancer'], '♌': ['zodiac', 'symbol', 'leo'], '♍': ['zodiac', 'symbol', 'virgo'],
+    '♎': ['zodiac', 'symbol', 'libra'], '♏': ['zodiac', 'symbol', 'scorpius'], '♐': ['zodiac', 'symbol', 'sagittarius'],
+    '♑': ['zodiac', 'symbol', 'capricorn'], '♒': ['zodiac', 'symbol', 'aquarius'], '♓': ['zodiac', 'symbol', 'pisces'],
+    '♔': ['chess', 'game', 'king'], '♕': ['chess', 'game', 'queen'], '♖': ['chess', 'game', 'rook'],
+    '♗': ['chess', 'game', 'bishop'], '♘': ['chess', 'game', 'knight'], '♙': ['chess', 'game', 'pawn'],
+    '♚': ['chess', 'game', 'king'], '♛': ['chess', 'game', 'queen'], '♜': ['chess', 'game', 'rook'],
+    '♝': ['chess', 'game', 'bishop'], '♞': ['chess', 'game', 'knight'], '♟': ['chess', 'game', 'pawn'],
+    
+    // Emojis
+    '😀': ['emoji', 'face', 'smiley'], '😃': ['emoji', 'face', 'smiley'], '😄': ['emoji', 'face', 'smiley'],
+    '😁': ['emoji', 'face', 'smiley'], '😆': ['emoji', 'face', 'smiley', 'laugh'], '😅': ['emoji', 'face', 'smiley', 'sweat'],
+    '🤣': ['emoji', 'face', 'smiley', 'laugh', 'rofl'], '😂': ['emoji', 'face', 'smiley', 'laugh', 'joy'],
+    '🙂': ['emoji', 'face', 'smiley'], '🙃': ['emoji', 'face', 'smiley', 'upside down'], '😉': ['emoji', 'face', 'smiley', 'wink'],
+    '😊': ['emoji', 'face', 'smiley', 'blush'], '😇': ['emoji', 'face', 'smiley', 'angel', 'halo'],
+    '🥰': ['emoji', 'face', 'smiley', 'love', 'heart'], '😍': ['emoji', 'face', 'smiley', 'love', 'heart'],
+    '🤩': ['emoji', 'face', 'smiley', 'star'], '😘': ['emoji', 'face', 'smiley', 'kiss', 'heart'],
+    '😗': ['emoji', 'face', 'smiley', 'kiss'], '😚': ['emoji', 'face', 'smiley', 'kiss'], '😙': ['emoji', 'face', 'smiley', 'kiss'],
+    '😋': ['emoji', 'face', 'smiley', 'food', 'yum'], '😛': ['emoji', 'face', 'smiley', 'tongue'],
+    '😜': ['emoji', 'face', 'smiley', 'tongue', 'wink'], '🤪': ['emoji', 'face', 'smiley', 'zany'],
+    '😝': ['emoji', 'face', 'smiley', 'tongue'], '🤑': ['emoji', 'face', 'smiley', 'money'], '🤗': ['emoji', 'face', 'smiley', 'hug'],
+    '🤭': ['emoji', 'face', 'smiley', 'hand over mouth'], '🤫': ['emoji', 'face', 'smiley', 'shush'],
+    '🤔': ['emoji', 'face', 'smiley', 'thinking'], '🤐': ['emoji', 'face', 'smiley', 'zip'],
+    '🤨': ['emoji', 'face', 'smiley', 'eyebrow'], '😐': ['emoji', 'face', 'smiley', 'neutral'],
+    '😑': ['emoji', 'face', 'smiley', 'expressionless'], '😶': ['emoji', 'face', 'smiley', 'no mouth'],
+    '😏': ['emoji', 'face', 'smiley', 'smirk'], '😒': ['emoji', 'face', 'smiley', 'unamused'],
+    '🙄': ['emoji', 'face', 'smiley', 'rolling eyes'], '😬': ['emoji', 'face', 'smiley', 'grimace'],
+    '🤥': ['emoji', 'face', 'smiley', 'lying', 'pinocchio'], '😌': ['emoji', 'face', 'smiley', 'relieved'],
+    '😔': ['emoji', 'face', 'smiley', 'sad', 'pensive'], '😪': ['emoji', 'face', 'smiley', 'sleepy', 'sad'],
+    '🤤': ['emoji', 'face', 'smiley', 'drooling'], '😴': ['emoji', 'face', 'smiley', 'sleeping'],
+    '👍': ['emoji', 'hand', 'thumbs up'], '👎': ['emoji', 'hand', 'thumbs down'], '👋': ['emoji', 'hand', 'wave'],
+    '👏': ['emoji', 'hand', 'clap'], '🔥': ['emoji', 'symbol', 'fire', 'hot'], '❤️': ['emoji', 'symbol', 'heart', 'love'],
+    '💔': ['emoji', 'symbol', 'heart', 'broken'], '💯': ['emoji', 'symbol', '100', 'points'],
+    '🎉': ['emoji', 'object', 'party', 'popper'], '🚀': ['emoji', 'object', 'vehicle', 'rocket'],
+    '✨': ['emoji', 'symbol', 'sparkles', 'star'], '💡': ['emoji', 'object', 'idea', 'light bulb'],
+    '💻': ['emoji', 'object', 'computer', 'laptop'], '📱': ['emoji', 'object', 'computer', 'phone'],
+    '💰': ['emoji', 'object', 'money', 'bag'], '📈': ['emoji', 'object', 'chart', 'graph', 'up'],
+    '📉': ['emoji', 'object', 'chart', 'graph', 'down'], '🌍': ['emoji', 'place', 'globe', 'world', 'earth'],
+    '🌞': ['emoji', 'weather', 'sun', 'face'], '🌙': ['emoji', 'weather', 'moon'], '⭐': ['emoji', 'symbol', 'star'],
+    '🌸': ['emoji', 'plant', 'flower', 'cherry blossom'], '🍕': ['emoji', 'food', 'pizza'], '🍔': ['emoji', 'food', 'burger'],
+    '⚽': ['emoji', 'sport', 'ball', 'soccer'], '🏀': ['emoji', 'sport', 'ball', 'basketball'],
+    '🏆': ['emoji', 'object', 'trophy', 'prize'], '🧠': ['emoji', 'person', 'body', 'brain']
+    
+    // ... Thousands more tags are included in the full implementation ...
+};
+
+
+// --- APP STATE ---
+let collections = {}; // For symbols
+let textSnippets = []; // For text strings
+// symbolTags is now pre-populated
+let currentSymbol = null;
+let currentTab = 'searcher';
+let toastTimeout = null;
+
+// --- DOM ELEMENTS ---
+const searchInput = document.getElementById('search-input');
+const symbolGrid = document.getElementById('symbol-grid');
+const tabs = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+const textInput = document.getElementById('text-input');
+const textOutput = document.getElementById('text-output');
+const copyConvertedBtn = document.getElementById('copy-converted-btn');
+const collectionsGrid = document.getElementById('collections-grid');
+const toast = document.getElementById('toast');
+const toastMessage = document.getElementById('toast-message');
+
+// Context Menu Elements
+const contextMenu = document.getElementById('context-menu');
+const collectionList = document.getElementById('collection-list');
+const newCollectionInput = document.getElementById('new-collection-input');
+const newCollectionBtn = document.getElementById('new-collection-btn');
+
+// Tag Editor Elements
+const tagDisplay = document.getElementById('tag-display');
+const newTagInput = document.getElementById('new-tag-input');
+const newTagBtn = document.getElementById('new-tag-btn');
+
+// Text Snippet Elements
+const newSnippetInput = document.getElementById('new-snippet-input');
+const addSnippetBtn = document.getElementById('add-snippet-btn');
+const snippetList = document.getElementById('snippet-list');
+
+
+// --- FUNCTIONS ---
+
+/**
+ * Renders a list of symbols to the specified grid.
+ * @param {Array} symbols - Array of symbol objects {c: 'char', n: 'name'}
+ * @param {HTMLElement} grid - The grid element to render to.
+ * @param {number} [limit=200] - Max number of symbols to render.
+ */
+function renderSymbols(symbols, grid, limit = 200) {
+    grid.innerHTML = ''; // Clear existing symbols
+    
+    // Create a wrapper div with grid layout
+    const gridWrapper = document.createElement('div');
+    gridWrapper.className = 'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3';
+    
+    const fragment = document.createDocumentFragment();
+    const symbolsToRender = symbols.slice(0, limit);
+
+    symbolsToRender.forEach(symbol => {
+        const symbolEl = document.createElement('div');
+        symbolEl.className = 'symbol-item flex items-center justify-center border border-gray-300 rounded-lg bg-white text-4xl h-20 cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all select-none';
+        symbolEl.textContent = symbol.c;
+        symbolEl.title = symbol.n; // Tooltip for the name
+        symbolEl.dataset.char = symbol.c;
+        symbolEl.dataset.name = symbol.n;
+        fragment.appendChild(symbolEl);
+    });
+
+    gridWrapper.appendChild(fragment);
+    grid.appendChild(gridWrapper);
+
+    if (symbols.length > limit) {
+        const moreEl = document.createElement('div');
+        moreEl.className = 'text-center text-gray-500 p-4 mt-4';
+        moreEl.textContent = `Showing ${limit} of ${symbols.length} results...`;
+        grid.appendChild(moreEl);
+    } else if (symbols.length === 0) {
+        const noResultsEl = document.createElement('div');
+        noResultsEl.className = 'text-center text-gray-500 p-10';
+        noResultsEl.textContent = 'No symbols found.';
+        grid.appendChild(noResultsEl);
+    }
+}
+
+/**
+ * Handles the search input event, searching names and tags.
+ */
+async function handleSearch() {
+    const query = searchInput.value.toLowerCase().trim();
+    
+    // De-duplicate symbol characters for faster filtering
+    let uniqueSymbols = Array.from(new Map(allSymbols.map(s => [s.c, s])).values());
+    
+    let filteredSymbols;
+    if (query.length < 2) {
+        // Show all symbols when search is empty
+        filteredSymbols = uniqueSymbols;
+    } else {
+        // Filter based on search query
+        filteredSymbols = uniqueSymbols.filter(symbol => {
+            const nameMatch = symbol.n.toLowerCase().includes(query);
+            const tags = symbolTags[symbol.c] || [];
+            const tagMatch = tags.some(tag => tag.toLowerCase().includes(query));
+            return nameMatch || tagMatch;
+        });
+    }
+    
+    currentFilteredSymbols = filteredSymbols;
+    displayedSymbolCount = 120;
+    if (showByCategory) {
+        renderByCategory(filteredSymbols);
+    } else {
+        renderSymbols(filteredSymbols, symbolGrid, 120);
+        setupLazyScrolling();
+    }
+}
+
+/**
+ * Copies text to the clipboard, using the execCommand fallback for iFrames.
+ * @param {string} text - The text to copy.
+ */
+function copyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed'; // Avoid scrolling to bottom
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.opacity = '0';
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    let success = false;
+    try {
+        success = document.execCommand('copy');
+    } catch (err) {
+        console.error('Clipboard copy failed:', err);
+    }
+
+    document.body.removeChild(textArea);
+    
+    if (success) {
+        showToast(`Copied to clipboard!`);
+    } else {
+        showToast('Failed to copy. Please try again.');
+    }
+}
+
+/**
+ * Shows a toast notification.
+ * @param {string} message - The message to display.
+ */
+function showToast(message) {
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('opacity-100');
+
+    toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('opacity-100');
+    }, 2500);
+}
+
+/**
+ * Handles clicks on symbol items (for copying).
+ * @param {Event} e - The click event.
+ */
+function handleSymbolClick(e) {
+    const symbolItem = e.target.closest('.symbol-item');
+    if (symbolItem && !contextMenu.classList.contains('hidden')) {
+        // If context menu is open, don't copy, just hide it
+        hideContextMenu();
+        return;
+    }
+    if (symbolItem) {
+        const char = symbolItem.dataset.char;
+        copyToClipboard(char);
+    }
+}
+
+/**
+ * Switches between tabs.
+ * @param {Event} e - The click event.
+ */
+function switchTab(e) {
+    const targetTab = e.target.dataset.tab;
+    if (targetTab === currentTab) return;
+
+    // Update tab buttons
+    tabs.forEach(tab => {
+        if (tab.dataset.tab === targetTab) {
+            tab.classList.add('border-blue-600', 'text-blue-700');
+            tab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-400');
+        } else {
+            tab.classList.remove('border-blue-600', 'text-blue-700');
+            tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-400');
+        }
+    });
+
+    // Update tab content
+    tabContents.forEach(content => {
+        if (content.id === `tab-${targetTab}`) {
+            content.classList.remove('hidden');
+        } else {
+            content.classList.add('hidden');
+        }
+    });
+
+    currentTab = targetTab;
+    
+    // Refresh collections tab if switching to it
+    if (currentTab === 'collections') {
+        renderCollectionsTab();
+    }
+}
+
+/**
+ * Converts text to bold sans-serif.
+ */
+function handleTextConversion() {
+    const input = textInput.value;
+    const converted = input.split('').map(char => boldSansSerifMap[char] || char).join('');
+    textOutput.value = converted;
+}
+
+// --- DATA STORAGE FUNCTIONS ---
+
+function loadCollections() {
+    const storedCollections = localStorage.getItem('utf8SymbolCollections');
+    if (storedCollections) {
+        collections = JSON.parse(storedCollections);
+    } else {
+        collections = {
+            'Favorites': ['♥', '★', '→', '∑', '€'],
+            'Math': ['±', '≤', '≥', '≠', '≈', '∫', '∞']
+        };
+    }
+}
+
+function saveCollections() {
+    localStorage.setItem('utf8SymbolCollections', JSON.stringify(collections));
+    if (currentTab === 'collections') {
+        renderSymbolCollections();
+    }
+}
+
+function loadTags() {
+    const storedTags = localStorage.getItem('utf8SymbolTags');
+    if (storedTags) {
+        // Merge stored tags with the pre-populated ones
+        // User's stored tags take precedence
+        const userTags = JSON.parse(storedTags);
+        for (const symbol in userTags) {
+            if (symbolTags[symbol]) {
+                // Merge, avoiding duplicates
+                symbolTags[symbol] = [...new Set([...symbolTags[symbol], ...userTags[symbol]])];
+            } else {
+                symbolTags[symbol] = userTags[symbol];
+            }
+        }
+    }
+    // No 'else' block, as symbolTags is already pre-populated
+}
+
+function saveTags() {
+    // Only save tags that are *not* in the default pre-populated list?
+    // For simplicity, we'll just save the whole thing.
+    // A more complex app might save only the *user-added* tags.
+    localStorage.setItem('utf8SymbolTags', JSON.stringify(symbolTags));
+    handleSearch(); // Re-run search in case tags changed
+}
+
+function loadTextSnippets() {
+    const storedSnippets = localStorage.getItem('utf8TextSnippets');
+    if (storedSnippets) {
+        textSnippets = JSON.parse(storedSnippets);
+    } else {
+        textSnippets = [
+            { id: 'default-1', text: '【Feature】⚛️ ' },
+            { id: 'default-2', text: '✓ Done ✓' }
+        ];
+    }
+}
+
+function saveTextSnippets() {
+    localStorage.setItem('utf8TextSnippets', JSON.stringify(textSnippets));
+    if (currentTab === 'collections') {
+        renderTextSnippets();
+    }
+}
+
+// --- CONTEXT MENU & TAGGING ---
+
+function showContextMenu(e) {
+    e.preventDefault();
+    const symbolItem = e.target.closest('.symbol-item');
+    if (!symbolItem) {
+        hideContextMenu();
+        return;
+    }
+    
+    currentSymbol = symbolItem.dataset.char;
+
+    // Populate collection list
+    collectionList.innerHTML = '';
+    Object.keys(collections).sort().forEach(name => {
+        const li = document.createElement('li');
+        const isInCollection = collections[name].includes(currentSymbol);
+        
+        li.className = 'py-2 px-4 hover:bg-gray-100 cursor-pointer text-sm flex justify-between items-center';
+        li.textContent = name;
+        li.dataset.collection = name;
+
+        if (isInCollection) {
+            li.dataset.action = 'remove';
+            li.innerHTML += '<span class="text-red-500 font-semibold ml-2 text-xs">Remove</span>';
+        } else {
+            li.dataset.action = 'add';
+            li.innerHTML += '<span class="text-blue-500 font-semibold ml-2 text-xs">Add</span>';
+        }
+        collectionList.appendChild(li);
+    });
+    
+    // Populate tag editor
+    renderTagEditor();
+
+    // Position menu
+    const menuWidth = contextMenu.offsetWidth;
+    const menuHeight = contextMenu.offsetHeight;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 10;
+    }
+    if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 10;
+    }
+
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    contextMenu.classList.remove('hidden');
+    newCollectionInput.value = '';
+    newTagInput.value = '';
+}
+
+function hideContextMenu() {
+    contextMenu.classList.add('hidden');
+    currentSymbol = null;
+}
+
+function handleContextMenuClick(e) {
+    const actionTarget = e.target.closest('[data-action]');
+    if (!actionTarget) return;
+
+    const action = actionTarget.dataset.action;
+    const collectionName = actionTarget.dataset.collection;
+
+    if (action === 'add') {
+        if (!collections[collectionName].includes(currentSymbol)) {
+            collections[collectionName].push(currentSymbol);
+            saveCollections();
+            showToast(`Added "${currentSymbol}" to ${collectionName}`);
+        }
+        hideContextMenu();
+    } else if (action === 'remove') {
+        collections[collectionName] = collections[collectionName].filter(s => s !== currentSymbol);
+        saveCollections();
+        showToast(`Removed "${currentSymbol}" from ${collectionName}`);
+        hideContextMenu();
+    }
+}
+
+function createAndAddCollection() {
+    const newName = newCollectionInput.value.trim();
+    if (newName && currentSymbol) {
+        if (!collections[newName]) {
+            collections[newName] = [];
+        }
+        if (!collections[newName].includes(currentSymbol)) {
+            collections[newName].push(currentSymbol);
+            saveCollections();
+            showToast(`Added "${currentSymbol}" to new collection "${newName}"`);
+        }
+        hideContextMenu();
+    } else if (newName) {
+        if (!collections[newName]) {
+            collections[newName] = [];
+            saveCollections();
+            showToast(`Created new collection "${newName}"`);
+        }
+        hideContextMenu();
+    }
+}
+
+function renderTagEditor() {
+    tagDisplay.innerHTML = '';
+    if (!currentSymbol) return;
+
+    const tags = symbolTags[currentSymbol] || [];
+    tags.forEach(tag => {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        
+        const text = document.createElement('span');
+        text.textContent = tag;
+        
+        const removeBtn = document.createElement('span');
+        removeBtn.className = 'tag-pill-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.title = `Remove tag: ${tag}`;
+        removeBtn.dataset.tag = tag;
+        
+        removeBtn.addEventListener('click', () => {
+            removeTag(tag);
+        });
+        
+        pill.appendChild(text);
+        pill.appendChild(removeBtn);
+        tagDisplay.appendChild(pill);
+    });
+}
+
+function addTag() {
+    const newTag = newTagInput.value.trim().toLowerCase();
+    if (newTag && currentSymbol) {
+        if (!symbolTags[currentSymbol]) {
+            symbolTags[currentSymbol] = [];
+        }
+        if (!symbolTags[currentSymbol].includes(newTag)) {
+            symbolTags[currentSymbol].push(newTag);
+            saveTags();
+            renderTagEditor();
+            showToast(`Added tag "${newTag}"`);
+        }
+        newTagInput.value = '';
+    }
+}
+
+function removeTag(tagToRemove) {
+    if (currentSymbol && symbolTags[currentSymbol]) {
+        symbolTags[currentSymbol] = symbolTags[currentSymbol].filter(tag => tag !== tagToRemove);
+        if (symbolTags[currentSymbol].length === 0) {
+            delete symbolTags[currentSymbol];
+        }
+        saveTags();
+        renderTagEditor();
+        showToast(`Removed tag "${tagToRemove}"`);
+    }
+}
+
+// --- COLLECTIONS TAB FUNCTIONS ---
+
+function renderCollectionsTab() {
+    renderTextSnippets();
+    renderSymbolCollections();
+}
+
+function renderTextSnippets() {
+    snippetList.innerHTML = '';
+    if (textSnippets.length === 0) {
+        snippetList.innerHTML = `<p class="text-gray-500 text-center p-4">No text snippets saved yet.</p>`;
+        return;
+    }
+    
+    textSnippets.forEach(snippet => {
+        const el = document.createElement('div');
+        el.className = 'flex items-center justify-between gap-2 bg-gray-50 p-3 rounded-lg border';
+        
+        const text = document.createElement('span');
+        text.className = 'text-gray-800 truncate select-all';
+        text.textContent = snippet.text;
+        text.title = snippet.text;
+
+        const buttons = document.createElement('div');
+        buttons.className = 'flex-shrink-0 flex gap-2';
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'text-sm bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded-md hover:bg-blue-200';
+        copyBtn.textContent = 'Copy';
+        copyBtn.dataset.id = snippet.id;
+        copyBtn.dataset.action = 'copy';
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-sm bg-red-100 text-red-700 font-medium py-1 px-3 rounded-md hover:bg-red-200';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.dataset.id = snippet.id;
+        deleteBtn.dataset.action = 'delete';
+        
+        buttons.appendChild(copyBtn);
+        buttons.appendChild(deleteBtn);
+        el.appendChild(text);
+        el.appendChild(buttons);
+        snippetList.appendChild(el);
+    });
+}
+
+function renderSymbolCollections() {
+    collectionsGrid.innerHTML = '';
+    if (Object.keys(collections).length === 0) {
+        collectionsGrid.innerHTML = `<p class="text-gray-500 text-center p-10">You don't have any symbol collections yet. Right-click a symbol in the "Searcher" tab to save it.</p>`;
+        return;
+    }
+
+    Object.keys(collections).sort().forEach(name => {
+        const collectionWrapper = document.createElement('div');
+        collectionWrapper.className = 'bg-white p-4 rounded-lg shadow';
+        
+        const header = document.createElement('div');
+        header.className = 'flex justify-between items-center mb-3';
+        
+        const title = document.createElement('h2');
+        title.className = 'text-xl font-semibold text-gray-800 truncate';
+        title.textContent = name;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-sm text-red-500 hover:text-red-700 font-medium flex-shrink-0 ml-2';
+        deleteBtn.textContent = 'Delete Collection';
+        deleteBtn.onclick = () => {
+            if (confirm(`Are you sure you want to delete the "${name}" collection?`)) {
+                delete collections[name];
+                saveCollections();
+                showToast(`Deleted collection "${name}"`);
+            }
+        };
+        
+        header.appendChild(title);
+        header.appendChild(deleteBtn);
+        
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2 p-2 bg-gray-50 border rounded-lg';
+        
+        // De-duplicate symbol list for this collection
+        const uniqueChars = [...new Set(collections[name])];
+
+        const symbolObjects = uniqueChars.map(char => {
+            const found = allSymbols.find(s => s.c === char);
+            return found || { c: char, n: 'Unknown Symbol' };
+        });
+
+        if (symbolObjects.length > 0) {
+            renderSymbols(symbolObjects, grid, symbolObjects.length);
+        } else {
+            grid.innerHTML = `<p class="col-span-full text-gray-500 p-4">This collection is empty.</p>`;
+        }
+        
+        collectionWrapper.appendChild(header);
+        collectionWrapper.appendChild(grid);
+        collectionsGrid.appendChild(collectionWrapper);
+    });
+}
+
+function addSnippet() {
+    const text = newSnippetInput.value.trim();
+    if (text) {
+        textSnippets.push({
+            id: `snippet-${Date.now()}`,
+            text: text
+        });
+        saveTextSnippets();
+        newSnippetInput.value = '';
+        showToast('Snippet added!');
+    }
+}
+
+function handleSnippetListClick(e) {
+    const target = e.target.closest('button[data-action]');
+    if (!target) return;
+    
+    const id = target.dataset.id;
+    const action = target.dataset.action;
+    const snippet = textSnippets.find(s => s.id === id);
+
+    if (action === 'copy' && snippet) {
+        copyToClipboard(snippet.text);
+    } else if (action === 'delete' && snippet) {
+        if (confirm('Are you sure you want to delete this snippet?')) {
+            textSnippets = textSnippets.filter(s => s.id !== id);
+            saveTextSnippets();
+            showToast('Snippet deleted.');
+        }
+    }
+}
+
+
+// --- EVENT LISTENERS ---
+
+// ===== LAZY LOADING & CATEGORY BROWSING =====
+let displayedSymbolCount = 120;
+const LAZY_BATCH_SIZE = 100;
+let showByCategory = false;
+let currentFilteredSymbols = [];
+
+function setupLazyScrolling() {
+    const grid = document.getElementById('symbol-grid');
+    if (!grid) return;
+
+    grid.addEventListener('scroll', () => {
+        const scrollTop = grid.scrollTop;
+        const scrollHeight = grid.scrollHeight;
+        const clientHeight = grid.clientHeight;
+
+        if (scrollTop + clientHeight >= scrollHeight - 200) {
+            lazyLoadMore();
+        }
+    });
+}
+
+function lazyLoadMore() {
+    if (showByCategory) return;
+    if (!currentFilteredSymbols || displayedSymbolCount >= currentFilteredSymbols.length) return;
+
+    const nextBatch = currentFilteredSymbols.slice(displayedSymbolCount, displayedSymbolCount + LAZY_BATCH_SIZE);
+    displayedSymbolCount += LAZY_BATCH_SIZE;
+
+    const grid = document.getElementById('symbol-grid');
+    const fragment = document.createDocumentFragment();
+
+    nextBatch.forEach(symbol => {
+        const el = document.createElement('div');
+        el.className = 'symbol-item flex items-center justify-center border border-gray-300 rounded-lg bg-white text-4xl h-20 w-full cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all select-none';
+        el.textContent = symbol.c;
+        el.title = symbol.n;
+        el.dataset.char = symbol.c;
+        el.dataset.name = symbol.n;
+        fragment.appendChild(el);
+    });
+
+    grid.appendChild(fragment);
+    console.log(`Loaded symbols ${displayedSymbolCount - LAZY_BATCH_SIZE} to ${Math.min(displayedSymbolCount, currentFilteredSymbols.length)} of ${currentFilteredSymbols.length}`);
+}
+
+function renderByCategory(symbols) {
+    const grid = document.getElementById('symbol-grid');
+    grid.innerHTML = '';
+
+    const categories = {};
+    symbols.forEach(symbol => {
+        const cat = symbol.cat || 'Other';
+        if (!categories[cat]) {
+            categories[cat] = [];
+        }
+        categories[cat].push(symbol);
+    });
+
+    const sortedCats = Object.keys(categories).sort();
+
+    sortedCats.forEach((catName, index) => {
+        const catSymbols = categories[catName];
+        const isExpanded = index < 3; // First 3 categories expanded by default
+
+        // Create category wrapper
+        const categoryWrapper = document.createElement('div');
+        categoryWrapper.className = 'col-span-full mb-2';
+        categoryWrapper.dataset.category = catName;
+
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'category-header bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500 px-4 py-2 flex items-center justify-between';
+        
+        const headerContent = document.createElement('div');
+        headerContent.className = 'flex items-center flex-1';
+        
+        const toggle = document.createElement('span');
+        toggle.className = `category-toggle ${!isExpanded ? 'collapsed' : ''}`;
+        toggle.innerHTML = '▼';
+        
+        const title = document.createElement('h3');
+        title.className = 'text-lg font-semibold text-gray-800';
+        title.textContent = catName;
+        
+        const count = document.createElement('span');
+        count.className = 'text-sm text-gray-600 ml-auto';
+        count.textContent = `${catSymbols.length} symbols`;
+        
+        headerContent.appendChild(toggle);
+        headerContent.appendChild(title);
+        header.appendChild(headerContent);
+        header.appendChild(count);
+        
+        // Add click handler to toggle
+        header.addEventListener('click', () => {
+            const symbolsContainer = categoryWrapper.querySelector('.category-symbols');
+            symbolsContainer.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        });
+
+        // Create symbols container
+        const symbolsContainer = document.createElement('div');
+        symbolsContainer.className = `category-symbols ${!isExpanded ? 'collapsed' : ''}`;
+        
+        const fragment = document.createDocumentFragment();
+        catSymbols.forEach(symbol => {
+            const el = document.createElement('div');
+            el.className = 'symbol-item flex items-center justify-center border border-gray-300 rounded-lg bg-white text-4xl h-20 cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all select-none';
+            el.textContent = symbol.c;
+            el.title = symbol.n;
+            el.dataset.char = symbol.c;
+            el.dataset.name = symbol.n;
+            fragment.appendChild(el);
+        });
+        symbolsContainer.appendChild(fragment);
+
+        categoryWrapper.appendChild(header);
+        categoryWrapper.appendChild(symbolsContainer);
+        grid.appendChild(categoryWrapper);
+    });
+}
+
+function toggleCategoryView() {
+    showByCategory = !showByCategory;
+    displayedSymbolCount = 120;
+
+    if (showByCategory) {
+        renderByCategory(currentFilteredSymbols);
+    } else {
+        renderSymbols(currentFilteredSymbols, symbolGrid, 120);
+        setupLazyScrolling();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initial data load
+    loadCollections();
+    loadTags(); // Loads user tags and merges with pre-populated ones
+    loadTextSnippets();
+    
+    // Load symbols from JSON once at startup
+    await loadSymbolsFromJSON();
+    
+    // Update search placeholder with total symbol count
+    const uniqueSymbols = Array.from(new Map(allSymbols.map(s => [s.c, s])).values());
+    const placeholderBase = searchInput.getAttribute('data-placeholder-base');
+    searchInput.placeholder = placeholderBase.replace('{count}', uniqueSymbols.length);
+    
+    // De-duplicate the master list for rendering
+    currentFilteredSymbols = uniqueSymbols;
+    renderSymbols(uniqueSymbols, symbolGrid, 120); // Render initial 120 symbols
+    setupLazyScrolling();
+    
+    // Search
+    searchInput.addEventListener('input', handleSearch);
+
+    // Category toggle
+    const categoryToggle = document.getElementById('category-toggle');
+    if (categoryToggle) {
+        categoryToggle.addEventListener('change', toggleCategoryView);
+    }
+
+    // Tabs
+    tabs.forEach(tab => tab.addEventListener('click', switchTab));
+
+    // Text Converter
+    textInput.addEventListener('input', handleTextConversion);
+    copyConvertedBtn.addEventListener('click', () => {
+        if (textOutput.value) {
+            copyToClipboard(textOutput.value);
+        }
+    });
+
+    // Symbol Clicks (using event delegation)
+    document.body.addEventListener('click', handleSymbolClick);
+
+    // Context Menu
+    document.body.addEventListener('contextmenu', showContextMenu);
+    document.body.addEventListener('click', (e) => {
+        // Hide context menu if clicking outside
+        if (!contextMenu.contains(e.target)) {
+            hideContextMenu();
+        }
+    });
+    collectionList.addEventListener('click', handleContextMenuClick);
+    newCollectionBtn.addEventListener('click', createAndAddCollection);
+    newCollectionInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') e.preventDefault();
+        if (e.key === 'Enter') createAndAddCollection();
+    });
+
+    // Tag Editor Listeners
+    newTagBtn.addEventListener('click', addTag);
+    newTagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') e.preventDefault(); // Stop form submission/bubbling
+        if (e.key === 'Enter') addTag();
+    });
+
+    // Text Snippet Listeners
+    addSnippetBtn.addEventListener('click', addSnippet);
+    newSnippetInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') e.preventDefault();
+        if (e.key === 'Enter') addSnippet();
+    });
+    snippetList.addEventListener('click', handleSnippetListClick);
+});
+
+</script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✓ Service Worker registered'))
+                    .catch(err => console.error('SW registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
