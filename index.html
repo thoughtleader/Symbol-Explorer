@@ -1035,11 +1035,14 @@ function lazyLoadMore() {
     displayedSymbolCount += LAZY_BATCH_SIZE;
 
     const grid = document.getElementById('symbol-grid');
+    const gridWrapper = grid.querySelector('.grid');
+    if (!gridWrapper) return; // Only append if grid wrapper exists
+    
     const fragment = document.createDocumentFragment();
 
     nextBatch.forEach(symbol => {
         const el = document.createElement('div');
-        el.className = 'symbol-item flex items-center justify-center border border-gray-300 rounded-lg bg-white text-4xl h-20 w-full cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all select-none';
+        el.className = 'symbol-item flex items-center justify-center border border-gray-300 rounded-lg bg-white text-4xl h-20 cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all select-none';
         el.textContent = symbol.c;
         el.title = symbol.n;
         el.dataset.char = symbol.c;
@@ -1047,7 +1050,7 @@ function lazyLoadMore() {
         fragment.appendChild(el);
     });
 
-    grid.appendChild(fragment);
+    gridWrapper.appendChild(fragment);
     console.log(`Loaded symbols ${displayedSymbolCount - LAZY_BATCH_SIZE} to ${Math.min(displayedSymbolCount, currentFilteredSymbols.length)} of ${currentFilteredSymbols.length}`);
 }
 
