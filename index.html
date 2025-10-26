@@ -214,11 +214,7 @@
     </div>
 
 <script>
-// --- DATABASE ---
-// A curated and merged list of over 3000 UTF-8 symbols and emojis.
-// This list is intentionally truncated for display, but represents the full set.
 let allSymbols = [];
-let symbolsByCategory = {};
 
 async function loadSymbolsFromJSON() {
     try {
@@ -253,7 +249,7 @@ const boldSansSerifMap = {
     'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶',
     'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿',
     's': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
-    '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4.': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
+    '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
 };
 
 // Pre-populated tags from W3S categories
@@ -462,13 +458,10 @@ const snippetList = document.getElementById('snippet-list');
  * @param {Array} symbols - Array of symbol objects {c: 'char', n: 'name'}
  * @param {HTMLElement} grid - The grid element to render to.
  * @param {number} [limit=200] - Max number of symbols to render.
+ * @param {boolean} [useWrapper=true] - Whether to wrap symbols in a grid container.
  */
-function renderSymbols(symbols, grid, limit = 200) {
+function renderSymbols(symbols, grid, limit = 200, useWrapper = true) {
     grid.innerHTML = ''; // Clear existing symbols
-    
-    // Create a wrapper div with grid layout
-    const gridWrapper = document.createElement('div');
-    gridWrapper.className = 'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3';
     
     const fragment = document.createDocumentFragment();
     const symbolsToRender = symbols.slice(0, limit);
@@ -483,8 +476,16 @@ function renderSymbols(symbols, grid, limit = 200) {
         fragment.appendChild(symbolEl);
     });
 
-    gridWrapper.appendChild(fragment);
-    grid.appendChild(gridWrapper);
+    if (useWrapper) {
+        // Create a wrapper div with grid layout for main grid
+        const gridWrapper = document.createElement('div');
+        gridWrapper.className = 'grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 w-full';
+        gridWrapper.appendChild(fragment);
+        grid.appendChild(gridWrapper);
+    } else {
+        // Append directly for collection grids (parent already has grid layout)
+        grid.appendChild(fragment);
+    }
 
     if (symbols.length > limit) {
         const moreEl = document.createElement('div');
@@ -960,7 +961,7 @@ function renderSymbolCollections() {
         });
 
         if (symbolObjects.length > 0) {
-            renderSymbols(symbolObjects, grid, symbolObjects.length);
+            renderSymbols(symbolObjects, grid, symbolObjects.length, false);
         } else {
             grid.innerHTML = `<p class="col-span-full text-gray-500 p-4">This collection is empty.</p>`;
         }
@@ -1051,7 +1052,6 @@ function lazyLoadMore() {
     });
 
     gridWrapper.appendChild(fragment);
-    console.log(`Loaded symbols ${displayedSymbolCount - LAZY_BATCH_SIZE} to ${Math.min(displayedSymbolCount, currentFilteredSymbols.length)} of ${currentFilteredSymbols.length}`);
 }
 
 function renderByCategory(symbols) {

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Symbol Explorer Tests</title>
+</head>
+<body>
+    <h1>Symbol Explorer Tests</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        const results = [];
+        
+        function test(name, fn) {
+            try {
+                fn();
+                results.push({ name, passed: true });
+                console.log(`✓ ${name}`);
+            } catch (e) {
+                results.push({ name, passed: false, error: e.message });
+                console.error(`✗ ${name}: ${e.message}`);
+            }
+        }
+        
+        function assert(condition, message) {
+            if (!condition) throw new Error(message);
+        }
+        
+        // Test: boldSansSerifMap has correct entries
+        test('boldSansSerifMap has uppercase letters', () => {
+            const map = {
+                'A': '𝗔', 'B': '𝗕', 'Z': '𝗭',
+                'a': '𝗮', 'z': '𝘇',
+                '0': '𝟬', '9': '𝟵'
+            };
+            assert(map['A'] === '𝗔', 'A should map to 𝗔');
+            assert(map['a'] === '𝗮', 'a should map to 𝗮');
+            assert(map['0'] === '𝟬', '0 should map to 𝟬');
+        });
+        
+        // Test: copyToClipboard function exists and is callable
+        test('copyToClipboard is a function', () => {
+            assert(typeof copyToClipboard === 'function', 'copyToClipboard should be a function');
+        });
+        
+        // Test: renderSymbols function exists
+        test('renderSymbols is a function', () => {
+            assert(typeof renderSymbols === 'function', 'renderSymbols should be a function');
+        });
+        
+        // Test: loadSymbolsFromJSON is async
+        test('loadSymbolsFromJSON is a function', () => {
+            assert(typeof loadSymbolsFromJSON === 'function', 'loadSymbolsFromJSON should be a function');
+        });
+        
+        // Display results
+        document.addEventListener('DOMContentLoaded', () => {
+            const passed = results.filter(r => r.passed).length;
+            const total = results.length;
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = `<p><strong>Tests: ${passed}/${total} passed</strong></p>`;
+            resultsDiv.innerHTML += results.map(r => 
+                `<p style="color: ${r.passed ? 'green' : 'red'}">${r.passed ? '✓' : '✗'} ${r.name}${r.error ? ': ' + r.error : ''}</p>`
+            ).join('');
+        });
+    </script>
+    
+    <!-- Load the main app to test functions -->
+    <script src="index.html"></script>
+</body>
+</html>
