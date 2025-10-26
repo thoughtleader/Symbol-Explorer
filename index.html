@@ -103,6 +103,13 @@
         }
     </style>
     <link rel="manifest" href="./manifest.json">
+    <script type="module">
+        import { storageAPI, collectionsAPI, tagsAPI, snippetsAPI } from './api-client.js';
+        window.storageAPI = storageAPI;
+        window.collectionsAPI = collectionsAPI;
+        window.tagsAPI = tagsAPI;
+        window.snippetsAPI = snippetsAPI;
+    </script>
 </head>
 <body class="bg-gray-100 font-sans text-gray-900">
 
@@ -652,11 +659,12 @@ function handleTextConversion() {
 
 // --- DATA STORAGE FUNCTIONS ---
 
-function loadCollections() {
-    const storedCollections = localStorage.getItem('utf8SymbolCollections');
-    if (storedCollections) {
-        collections = JSON.parse(storedCollections);
-    } else {
+async function loadCollections() {
+    try {
+        const result = await window.storageAPI.loadCollections();
+        collections = result;
+    } catch (error) {
+        console.error('Failed to load collections:', error);
         collections = {
             'Favorites': ['♥', '★', '→', '∑', '€'],
             'Math': ['±', '≤', '≥', '≠', '≈', '∫', '∞']
@@ -664,19 +672,21 @@ function loadCollections() {
     }
 }
 
-function saveCollections() {
-    localStorage.setItem('utf8SymbolCollections', JSON.stringify(collections));
+async function saveCollections() {
+    try {
+        await window.storageAPI.saveCollections(collections);
+    } catch (error) {
+        console.error('Failed to save collections:', error);
+    }
     if (currentTab === 'collections') {
         renderSymbolCollections();
     }
 }
 
-function loadTags() {
-    const storedTags = localStorage.getItem('utf8SymbolTags');
-    if (storedTags) {
+async function loadTags() {
+    try {
+        const userTags = await window.storageAPI.loadTags();
         // Merge stored tags with the pre-populated ones
-        // User's stored tags take precedence
-        const userTags = JSON.parse(storedTags);
         for (const symbol in userTags) {
             if (symbolTags[symbol]) {
                 // Merge, avoiding duplicates
@@ -685,23 +695,27 @@ function loadTags() {
                 symbolTags[symbol] = userTags[symbol];
             }
         }
+    } catch (error) {
+        console.error('Failed to load tags:', error);
     }
     // No 'else' block, as symbolTags is already pre-populated
 }
 
-function saveTags() {
-    // Only save tags that are *not* in the default pre-populated list?
-    // For simplicity, we'll just save the whole thing.
-    // A more complex app might save only the *user-added* tags.
-    localStorage.setItem('utf8SymbolTags', JSON.stringify(symbolTags));
+async function saveTags() {
+    try {
+        await window.storageAPI.saveTags(symbolTags);
+    } catch (error) {
+        console.error('Failed to save tags:', error);
+    }
     handleSearch(); // Re-run search in case tags changed
 }
 
-function loadTextSnippets() {
-    const storedSnippets = localStorage.getItem('utf8TextSnippets');
-    if (storedSnippets) {
-        textSnippets = JSON.parse(storedSnippets);
-    } else {
+async function loadTextSnippets() {
+    try {
+        const result = await window.storageAPI.loadSnippets();
+        textSnippets = result;
+    } catch (error) {
+        console.error('Failed to load snippets:', error);
         textSnippets = [
             { id: 'default-1', text: '【Feature】⚛️ ' },
             { id: 'default-2', text: '✓ Done ✓' }
@@ -709,8 +723,12 @@ function loadTextSnippets() {
     }
 }
 
-function saveTextSnippets() {
-    localStorage.setItem('utf8TextSnippets', JSON.stringify(textSnippets));
+async function saveTextSnippets() {
+    try {
+        await window.storageAPI.saveSnippets(textSnippets);
+    } catch (error) {
+        console.error('Failed to save snippets:', error);
+    }
     if (currentTab === 'collections') {
         renderTextSnippets();
     }
@@ -1016,7 +1034,6 @@ function handleSnippetListClick(e) {
 let displayedSymbolCount = 120;
 const LAZY_BATCH_SIZE = 100;
 let showByCategory = false;
-let currentFilteredSymbols = [];
 
 function setupLazyScrolling() {
     const grid = document.getElementById('symbol-grid');
