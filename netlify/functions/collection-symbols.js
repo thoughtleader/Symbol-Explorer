@@ -1,11 +1,39 @@
 // API endpoints for managing symbols within collections
 const { neon } = require('@netlify/neon');
 
+// Initialize database tables
+async function initializeDatabase(sql) {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS collections (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS collection_symbols (
+        id SERIAL PRIMARY KEY,
+        collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        symbol_char VARCHAR(10) NOT NULL,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(collection_id, symbol_char)
+      )
+    `;
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+}
+
 exports.handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
+    // Initialize database on first request
+    await initializeDatabase(sql);
     // POST /collection-symbols - Add a symbol to a collection
     if (httpMethod === 'POST') {
       const { collectionName, symbolChar } = JSON.parse(body);

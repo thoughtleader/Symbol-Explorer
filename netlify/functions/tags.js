@@ -1,11 +1,30 @@
 // API endpoints for managing symbol tags
 const { neon } = require('@netlify/neon');
 
+// Initialize database tables
+async function initializeDatabase(sql) {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS symbol_tags (
+        id SERIAL PRIMARY KEY,
+        symbol_char VARCHAR(10) NOT NULL,
+        tag VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(symbol_char, tag)
+      )
+    `;
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+}
+
 exports.handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
+    // Initialize database on first request
+    await initializeDatabase(sql);
     // GET /tags - Fetch all tags grouped by symbol
     if (httpMethod === 'GET') {
       const tags = await sql`

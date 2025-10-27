@@ -1,11 +1,29 @@
 // API endpoints for managing text snippets
 const { neon } = require('@netlify/neon');
 
+// Initialize database tables
+async function initializeDatabase(sql) {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS text_snippets (
+        id VARCHAR(50) PRIMARY KEY,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+}
+
 exports.handler = async (event, context) => {
   const sql = neon(process.env.NETLIFY_DATABASE_URL);
   const { httpMethod, body, queryStringParameters } = event;
 
   try {
+    // Initialize database on first request
+    await initializeDatabase(sql);
     // GET /snippets - Fetch all text snippets
     if (httpMethod === 'GET') {
       const snippets = await sql`
