@@ -713,7 +713,8 @@ async function saveTags() {
     } catch (error) {
         console.error('Failed to save tags:', error);
     }
-    handleSearch(); // Re-run search in case tags changed
+    // Don't call handleSearch() here - it causes infinite loops
+    // Tags are only used for search filtering, not for persistence
 }
 
 async function loadTextSnippets() {

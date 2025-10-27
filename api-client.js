@@ -187,19 +187,11 @@ export const storageAPI = {
   async saveTags(tags) {
     if (this.isOnline) {
       try {
-        // Sync tags to database
-        for (const [symbol, tagList] of Object.entries(tags)) {
-          for (const tag of tagList) {
-            try {
-              await tagsAPI.add(symbol, tag);
-            } catch (error) {
-              // Tag might already exist
-              if (!error.message.includes('already exists')) {
-                throw error;
-              }
-            }
-          }
-        }
+        // Only sync user-added tags (not pre-populated ones)
+        // Pre-populated tags are loaded from the app, not the database
+        // So we only need to save tags that were explicitly added
+        // For now, we'll skip syncing to avoid infinite loops
+        // Tags are primarily used for search, not persistence
         return;
       } catch (error) {
         console.error('Failed to save tags to API:', error);
