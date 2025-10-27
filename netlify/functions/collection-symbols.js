@@ -68,13 +68,22 @@ exports.handler = async (event, context) => {
           RETURNING id, collection_id, symbol_char
         `;
 
+        if (result.length === 0) {
+          // Symbol already exists in collection
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ message: 'Symbol already in collection' }),
+            headers: { 'Content-Type': 'application/json' }
+          };
+        }
+
         return {
           statusCode: 201,
-          body: JSON.stringify(result[0] || { message: 'Symbol already in collection' }),
+          body: JSON.stringify(result[0]),
           headers: { 'Content-Type': 'application/json' }
         };
       } catch (error) {
-        if (error.message.includes('unique')) {
+        if (error.message.includes('unique') || error.message.includes('duplicate')) {
           return {
             statusCode: 200,
             body: JSON.stringify({ message: 'Symbol already in collection' }),

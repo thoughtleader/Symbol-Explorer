@@ -68,13 +68,22 @@ exports.handler = async (event, context) => {
           RETURNING id, symbol_char, tag
         `;
 
+        if (result.length === 0) {
+          // Tag already exists for this symbol
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ message: 'Tag already exists for symbol' }),
+            headers: { 'Content-Type': 'application/json' }
+          };
+        }
+
         return {
           statusCode: 201,
-          body: JSON.stringify(result[0] || { message: 'Tag already exists for symbol' }),
+          body: JSON.stringify(result[0]),
           headers: { 'Content-Type': 'application/json' }
         };
       } catch (error) {
-        if (error.message.includes('unique')) {
+        if (error.message.includes('unique') || error.message.includes('duplicate')) {
           return {
             statusCode: 200,
             body: JSON.stringify({ message: 'Tag already exists for symbol' }),

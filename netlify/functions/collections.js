@@ -67,17 +67,28 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const result = await sql`
-        INSERT INTO collections (name)
-        VALUES (${name})
-        RETURNING id, name, created_at
-      `;
+      try {
+        const result = await sql`
+          INSERT INTO collections (name)
+          VALUES (${name})
+          RETURNING id, name, created_at
+        `;
 
-      return {
-        statusCode: 201,
-        body: JSON.stringify(result[0]),
-        headers: { 'Content-Type': 'application/json' }
-      };
+        return {
+          statusCode: 201,
+          body: JSON.stringify(result[0]),
+          headers: { 'Content-Type': 'application/json' }
+        };
+      } catch (error) {
+        if (error.message.includes('unique') || error.message.includes('duplicate') || error.message.includes('already exists')) {
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ message: 'Collection already exists' }),
+            headers: { 'Content-Type': 'application/json' }
+          };
+        }
+        throw error;
+      }
     }
 
     // DELETE /collections?name=CollectionName - Delete a collection

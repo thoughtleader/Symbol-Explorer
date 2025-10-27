@@ -151,9 +151,21 @@ export const storageAPI = {
           try {
             await collectionsAPI.create(name);
           } catch (error) {
-            // Collection might already exist
-            if (!error.message.includes('already exists')) {
+            // Collection might already exist - that's okay
+            if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
               throw error;
+            }
+          }
+          
+          // Sync symbols to the collection
+          for (const symbol of symbols) {
+            try {
+              await collectionsAPI.addSymbol(name, symbol);
+            } catch (error) {
+              // Symbol might already be in collection - that's okay
+              if (!error.message.includes('already') && !error.message.includes('duplicate')) {
+                throw error;
+              }
             }
           }
         }
@@ -223,7 +235,14 @@ export const storageAPI = {
     if (this.isOnline) {
       try {
         for (const snippet of snippets) {
-          await snippetsAPI.create(snippet.id, snippet.text);
+          try {
+            await snippetsAPI.create(snippet.id, snippet.text);
+          } catch (error) {
+            // Snippet might already exist - that's okay
+            if (!error.message.includes('already') && !error.message.includes('duplicate')) {
+              throw error;
+            }
+          }
         }
         return;
       } catch (error) {
