@@ -132,6 +132,8 @@ export const storageAPI = {
           result[col.name] = col.symbols || [];
         });
         console.log('✓ Collections loaded from API');
+        // Always sync API data to localStorage to keep them in sync
+        localStorage.setItem('utf8SymbolCollections', JSON.stringify(result));
         return result;
       } catch (error) {
         console.error('Failed to load collections from API:', error);
@@ -140,7 +142,7 @@ export const storageAPI = {
       }
     }
     
-    // Fallback to localStorage
+    // Fallback to localStorage only if API is offline
     const stored = localStorage.getItem('utf8SymbolCollections');
     console.log('Collections loaded from localStorage');
     return stored ? JSON.parse(stored) : {};
@@ -222,15 +224,21 @@ export const storageAPI = {
   async loadSnippets() {
     if (this.isOnline) {
       try {
-        return await snippetsAPI.getAll();
+        const snippets = await snippetsAPI.getAll();
+        console.log('✓ Snippets loaded from API');
+        // Always sync API data to localStorage to keep them in sync
+        localStorage.setItem('utf8TextSnippets', JSON.stringify(snippets));
+        return snippets;
       } catch (error) {
         console.error('Failed to load snippets from API:', error);
+        console.warn('Falling back to localStorage for snippets');
         this.isOnline = false;
       }
     }
     
-    // Fallback to localStorage
+    // Fallback to localStorage only if API is offline
     const stored = localStorage.getItem('utf8TextSnippets');
+    console.log('Snippets loaded from localStorage');
     return stored ? JSON.parse(stored) : [];
   },
 

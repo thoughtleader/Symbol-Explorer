@@ -43,7 +43,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API calls (POST, PUT, DELETE, etc) - only cache GET requests
+  // Skip ALL API calls - never cache dynamic data
+  // API calls are to /.netlify/functions/*
+  if (event.request.url.includes('/.netlify/functions/')) {
+    return;
+  }
+
+  // Only cache GET requests for static assets
   if (event.request.method !== 'GET') {
     return;
   }
@@ -60,7 +66,7 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             const responseToCache = response.clone();
-            // Only cache GET requests
+            // Cache static assets only
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
             });
