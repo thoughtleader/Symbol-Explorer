@@ -16,6 +16,8 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     options.body = JSON.stringify(data);
   }
 
+  console.log(`[API] ${method} ${endpoint}`, data ? data : '');
+
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, options);
     
@@ -37,12 +39,14 @@ async function apiCall(endpoint, method = 'GET', data = null) {
       if (!text) {
         throw new Error('Empty response from API');
       }
-      return JSON.parse(text);
+      const result = JSON.parse(text);
+      console.log(`[API] ✓ ${method} ${endpoint}`, result);
+      return result;
     } else {
       throw new Error(`Invalid content type: ${contentType}`);
     }
   } catch (error) {
-    console.error(`API call failed for ${endpoint}:`, error);
+    console.error(`[API] ✗ ${method} ${endpoint}:`, error.message);
     throw error;
   }
 }
@@ -185,6 +189,22 @@ export const storageAPI = {
     localStorage.setItem('utf8SymbolCollections', JSON.stringify(collections));
   },
 
+  async deleteCollection(name) {
+    if (this.isOnline) {
+      try {
+        await collectionsAPI.delete(name);
+        console.log(`✓ Collection "${name}" deleted from API`);
+        return;
+      } catch (error) {
+        console.error(`Failed to delete collection "${name}" from API:`, error);
+        this.isOnline = false;
+      }
+    }
+    
+    // Fallback: just remove from localStorage
+    localStorage.removeItem('utf8SymbolCollections');
+  },
+
   // Tags with fallback
   async loadTags() {
     if (this.isOnline) {
@@ -264,5 +284,21 @@ export const storageAPI = {
     
     // Fallback to localStorage
     localStorage.setItem('utf8TextSnippets', JSON.stringify(snippets));
+  },
+
+  async deleteSnippet(id) {
+    if (this.isOnline) {
+      try {
+        await snippetsAPI.delete(id);
+        console.log(`✓ Snippet "${id}" deleted from API`);
+        return;
+      } catch (error) {
+        console.error(`Failed to delete snippet "${id}" from API:`, error);
+        this.isOnline = false;
+      }
+    }
+    
+    // Fallback: just remove from localStorage
+    localStorage.removeItem('utf8TextSnippets');
   }
 };
