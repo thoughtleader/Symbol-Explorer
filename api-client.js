@@ -131,15 +131,18 @@ export const storageAPI = {
         collections.forEach(col => {
           result[col.name] = col.symbols || [];
         });
+        console.log('✓ Collections loaded from API');
         return result;
       } catch (error) {
         console.error('Failed to load collections from API:', error);
+        console.warn('Falling back to localStorage for collections');
         this.isOnline = false;
       }
     }
     
     // Fallback to localStorage
     const stored = localStorage.getItem('utf8SymbolCollections');
+    console.log('Collections loaded from localStorage');
     return stored ? JSON.parse(stored) : {};
   },
 

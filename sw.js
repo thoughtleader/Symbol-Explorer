@@ -43,6 +43,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip API calls (POST, PUT, DELETE, etc) - only cache GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -55,12 +60,10 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             const responseToCache = response.clone();
-            // Only cache http/https requests
-            if (event.request.url.startsWith('http')) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            }
+            // Only cache GET requests
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
             return response;
           })
           .catch(() => {
