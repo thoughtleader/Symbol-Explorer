@@ -1196,10 +1196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('⚠ API not available - using localStorage fallback');
     }
     
-    // Initial data load
-    loadCollections();
-    loadTags(); // Loads user tags and merges with pre-populated ones
-    loadTextSnippets();
+    // Initial data load - MUST await these to ensure data is loaded before rendering
+    await loadCollections();
+    await loadTags(); // Loads user tags and merges with pre-populated ones
+    await loadTextSnippets();
     
     // Load symbols from JSON once at startup
     await loadSymbolsFromJSON();
